@@ -102,12 +102,13 @@ def exibir_jogos(lista_jogos):
     moldura_base = Image.open(moldura_path).convert("RGBA")
 
     # Redimensionar a moldura para tamanho menor
-    moldura_w, moldura_h = 140, 160
+   # Redimensionar a moldura para tamanho menor
+    moldura_w, moldura_h = 100, 110  # Novo tamanho reduzido
     moldura_base = moldura_base.resize((moldura_w, moldura_h), Image.LANCZOS)
 
-    # Área interna (ajustada proporcionalmente à moldura menor)
-    inner_x, inner_y = 0, 0
-    inner_w, inner_h = 130, 150
+# Área interna (ajustada proporcionalmente à moldura menor)
+    inner_x, inner_y = 5, 0
+    inner_w, inner_h = 90, 100
 
     for widget in game_frame.winfo_children():
         widget.destroy()
@@ -153,11 +154,14 @@ def exibir_jogos(lista_jogos):
         titulo_quebrado = '\n'.join(nome_jogo.split()[:3])
 
         ctk.CTkButton(
-            frame_item, image=img_tk, text=titulo_quebrado, compound="top",
-            width=moldura_w, height=moldura_h + 30, fg_color="#1e1e1e",
-            text_color="white", font=("Segoe UI", 12, "bold"), hover_color="#2a2a3d",
-            command=lambda i=jogos.index(jogo): selecionar_jogo(i)
-        ).pack()
+    frame_item, image=img_tk, text=titulo_quebrado, compound="top",
+    width=moldura_w, height=moldura_h + 20,  # Altura menor
+    fg_color="#1e1e1e",
+    text_color="white", font=("Segoe UI", 12, "bold"),  # Fonte menor
+    hover_color="#2a2a3d",
+    command=lambda i=jogos.index(jogo): selecionar_jogo(i)
+).pack()
+
 
         try:
             icone_editar = load_icon("icon_edit.png", size=(20, 20))
@@ -171,14 +175,14 @@ def exibir_jogos(lista_jogos):
                     except Exception as e:
                         messagebox.showerror("Erro", f"Erro ao atualizar a capa:\n{e}")
             ctk.CTkButton(
-                frame_item, text="", image=icone_editar, width=20, height=20,
-                fg_color="transparent", hover_color="#444", corner_radius=6,
-                command=editar_capa
-            ).place(x=moldura_w - 28, y=4)
+    frame_item, text="", image=icone_editar, width=18, height=18,
+    fg_color="transparent", hover_color="#444", corner_radius=6,
+    command=editar_capa
+).place(x=moldura_w - 24, y=4)
         except:
             pass
 
-        frame_item.grid(row=idx // 3, column=idx % 3, padx=10, pady=10)
+        frame_item.grid(row=idx // 4, column=idx % 4, padx=10, pady=10)
 
 
 
@@ -209,7 +213,7 @@ verificar_ou_criar_cfg_hle()
 
 root = ctk.CTk()
 root.title("One Launcher")
-root.geometry("530x520")
+root.geometry("560x520")
 
 progress_bar = ctk.CTkProgressBar(root, mode="indeterminate", height=5)
 progress_bar.set(0)
