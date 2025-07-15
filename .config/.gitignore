@@ -1,0 +1,33 @@
+# === Ignorar arquivos temporários de Python ===
+../__pycache__/
+../*.pyc
+../*.pyo
+../*.pyd
+
+# === Ignorar pastas de IDEs ===
+../.vscode/
+../.idea/
+
+# === Ignorar arquivos de sistema ===
+../.DS_Store
+../Thumbs.db
+
+# === Ignorar ROMs e formatos de imagem de disco ===
+../*.iso
+../*.img
+../*.bin
+../*.cue
+
+# === Ignorar conteúdo da pasta roms, mas manter a pasta ===
+../roms/*
+!../roms/.gitkeep
+
+# === Ignorar conteúdo da pasta capas, mas manter a pasta ===
+../capas/*
+!../capas/.gitkeep
+
+# === Permitir build/ e o .exe na raiz ===
+!../build/
+
+# === Ignorar arquivos gerados pelo PyInstaller ===
+../*.spec
