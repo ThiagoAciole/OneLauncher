@@ -21,13 +21,7 @@ Thumbs.db
 *.bin
 *.cue
 
-# Ignorar conteúdo da pasta roms, mas manter a estrutura
-roms/*
-!roms/.gitkeep
 
-# Ignorar conteúdo da pasta capas, mas manter a estrutura
-capas/*
-!capas/.gitkeep
 
 # Ignorar arquivos gerados por compiladores ou PyInstaller
 *.spec
