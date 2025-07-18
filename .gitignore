@@ -1,0 +1,33 @@
+# Ignorar a pasta build
+/build/
+/src/build/
+
+# Ignorar arquivos executáveis na raiz
+*.exe
+
+# Ignorar arquivos temporários de Python
+__pycache__/
+*.py[cod]
+*.pyd
+
+# Ignorar arquivos de sistema
+.DS_Store
+Thumbs.db
+
+# Ignorar arquivos ZIP, ISO ou imagens de disco
+*.zip
+*.iso
+*.img
+*.bin
+*.cue
+
+# Ignorar conteúdo da pasta roms, mas manter a estrutura
+roms/*
+!roms/.gitkeep
+
+# Ignorar conteúdo da pasta capas, mas manter a estrutura
+capas/*
+!capas/.gitkeep
+
+# Ignorar arquivos gerados por compiladores ou PyInstaller
+*.spec
