@@ -1,19 +1,23 @@
-
 import customtkinter as ctk
-from tkinter import StringVar
+from tkinter import StringVar, messagebox
 import threading, zipfile, os
 from utils import get_rom_path, get_capa_path, gerar_link_direct, buscar_jogos
 import home
+import requests
 
+# === Variáveis Globais ===
 drawer = None
 drawer_visible = False
 icon_check = None
 icon_search = None
 icon_download = None
 icon_refresh = None
+icon_trash = None
 jogos_remotos = []
 loading_label = None
+loading_progress = None
 
+# === Funções ===
 def toggle_drawer():
     global drawer_visible
     if drawer_visible:
@@ -24,12 +28,13 @@ def toggle_drawer():
     drawer_visible = not drawer_visible
 
 def inject_drawer(frame, icons):
-    global drawer, icon_search, icon_check, icon_download, icon_refresh
+    global drawer, icon_search, icon_check, icon_download, icon_refresh, icon_trash
     drawer = frame
     icon_search = icons.get("search")
     icon_check = icons.get("check")
     icon_download = icons.get("download")
     icon_refresh = icons.get("refresh")
+    icon_trash = icons.get("trash")
 
 def build_drawer(frame):
     global loading_label
@@ -64,38 +69,33 @@ def build_drawer(frame):
     )
     search_entry.pack(side="left", fill="both", expand=True, padx=(6, 4), pady=4)
 
-    btn_refresh = ctk.CTkButton(
-        search_wrapper,
-        text="",
-        image=icon_refresh,
-        width=32,
-        height=28,
-        fg_color="transparent",
-        hover_color="#444444",
-        command=lambda: atualizar_jogos_remotos()
-    )
-    btn_refresh.pack(side="right", padx=(0, 8))
-
     frame_scroll = ctk.CTkScrollableFrame(frame, fg_color="#121212", corner_radius=12)
     frame_scroll.pack(fill='both', expand=True, padx=10, pady=5)
 
+    loading_container = ctk.CTkFrame(frame_scroll, fg_color="transparent")
+    loading_container.pack(pady=20)
+
     loading_label = ctk.CTkLabel(
-        frame_scroll,
-        text="🔄 Carregando jogos...",
+        loading_container,
+        text="Carregando jogos...",
         font=("Segoe UI", 14),
         text_color="gray"
     )
-    loading_label.pack(pady=20)
+    loading_label.pack(pady=(0, 8))
 
-    roms_existentes = set()
-    for arquivo in os.listdir(get_rom_path('')):
-        nome, ext = os.path.splitext(arquivo)
-        if ext.lower() in [".bin", ".iso", ".img", ".cue"]:
-            roms_existentes.add(nome)
+    global loading_progress
+    loading_progress = ctk.CTkProgressBar(loading_container, mode="indeterminate", width=200)
+    loading_progress.pack()
 
     def renderizar_lista(jogos_filtrados):
         for widget in frame_scroll.winfo_children():
             widget.destroy()
+
+        roms_existentes = set()
+        for arquivo in os.listdir(get_rom_path('')):
+            nome, ext = os.path.splitext(arquivo)
+            if ext.lower() in [".bin", ".iso", ".img", ".cue"]:
+                roms_existentes.add(nome)
 
         for jogo in jogos_filtrados:
             nome_formatado = jogo["name"]
@@ -103,14 +103,14 @@ def build_drawer(frame):
             linha.pack(fill="x", pady=8, padx=10)
             linha.pack_propagate(False)
 
-            ctk.CTkLabel(linha, text=jogo["name"], font=("Segoe UI", 14, "bold"), anchor="w").pack(side="left", padx=15)
+            ctk.CTkLabel(linha, text=nome_formatado, font=("Segoe UI", 14, "bold"), anchor="w").pack(side="left", padx=15)
             container = ctk.CTkFrame(linha, fg_color="transparent")
             container.pack(side="left", padx=10)
 
             status = ctk.CTkLabel(container, text="", anchor="w", font=("Segoe UI", 12))
             progress = ctk.CTkProgressBar(container, mode="indeterminate", height=5, width=140)
 
-            def baixar_jogo(j, s, p, b, nome_formatado):
+            def baixar_jogo(j, s, p, b, nome_formatado, linha):
                 def thread_func():
                     linha.after(0, lambda: (s.pack_forget(), p.pack(pady=4)))
                     p.start()
@@ -141,7 +141,8 @@ def build_drawer(frame):
                             s.configure(text="Concluído!"),
                             s.pack(pady=4),
                             b.configure(state="disabled", image=icon_check),
-                            home.carregar_jogos()
+                            home.carregar_jogos(),
+                            renderizar_lista(jogos_remotos)
                         ))
                     except Exception as e:
                         linha.after(0, lambda: (
@@ -152,13 +153,37 @@ def build_drawer(frame):
 
                 threading.Thread(target=thread_func, daemon=True).start()
 
-            if nome_formatado in roms_existentes:
-                btn = ctk.CTkButton(linha, text="", image=icon_check, width=40, height=28, fg_color="transparent", state="disabled")
-            else:
-                btn = ctk.CTkButton(linha, text="", image=icon_download, width=40, height=28, fg_color="transparent")
-                btn.configure(command=lambda j=jogo, s=status, p=progress, b=btn, n=nome_formatado: baixar_jogo(j, s, p, b, n))
+            def apagar_jogo(nome, s, b):
+                confirm = messagebox.askyesno("Confirmar", f"Deseja apagar '{nome}'?")
+                if confirm:
+                    for ext in [".bin", ".iso", ".img", ".cue", ".zip"]:
+                        rom_path = get_rom_path(f"{nome}{ext}")
+                        if os.path.exists(rom_path):
+                            os.remove(rom_path)
+                    for ext in [".png", ".jpg", ".jpeg"]:
+                        capa_path = get_capa_path(f"{nome}{ext}")
+                        if os.path.exists(capa_path):
+                            os.remove(capa_path)
+                    s.configure(text="🗑️ Jogo apagado")
+                    b.configure(state="normal", image=icon_download)
+                    home.carregar_jogos()
+                    renderizar_lista(jogos_remotos)
 
-            btn.pack(side="right", padx=5)
+            baixado = nome_formatado in roms_existentes
+
+            btn_download = ctk.CTkButton(linha, text="", image=icon_check if baixado else icon_download, width=40, height=28, fg_color="transparent")
+            btn_download.pack(side="right", padx=(0, 5))
+
+            if not baixado:
+                btn_download.configure(
+                    command=lambda j=jogo, s=status, p=progress, b=btn_download, n=nome_formatado, l=linha: baixar_jogo(j, s, p, b, n, l)
+                )
+
+            if baixado:
+                btn_delete = ctk.CTkButton(linha, text="", image=icon_trash, width=40, height=28, fg_color="transparent", hover_color="#ff4444")
+                btn_delete.configure(command=lambda nome=nome_formatado, s=status, b=btn_download: apagar_jogo(nome, s, b))
+                btn_delete.pack(side="right", padx=(0, 5))
+
             status.pack(pady=4)
 
         if loading_label and loading_label.winfo_exists():
@@ -179,16 +204,28 @@ def build_drawer(frame):
 
     def atualizar_jogos_remotos():
         status_label.configure(text="🔄 Buscando jogos...")
-        sucesso, data = buscar_jogos()
-        global jogos_remotos
-        jogos_remotos = data
+        loading_container.pack(pady=20)
+        loading_progress.start()
 
-        if not jogos_remotos:
-            status_label.configure(text="⚠️ Nenhum jogo encontrado ou erro ao carregar.")
-            loading_label.configure(text="Nenhum jogo encontrado.")
-        else:
-            status_label.configure(text=f"✅ {len(jogos_remotos)} jogos carregados.")
-            renderizar_lista(jogos_remotos)
+        def buscar():
+            sucesso, data = buscar_jogos()
+            global jogos_remotos
+            jogos_remotos = data
+
+            def atualizar_interface():
+                loading_progress.stop()
+                loading_container.pack_forget()
+
+                if not jogos_remotos:
+                    status_label.configure(text="⚠️ Nenhum jogo encontrado ou erro ao carregar.")
+                    loading_label.configure(text="Nenhum jogo encontrado.")
+                else:
+                    status_label.configure(text=f"✅ {len(jogos_remotos)} jogos carregados.")
+                    renderizar_lista(jogos_remotos)
+
+            frame.after(0, atualizar_interface)
+
+        threading.Thread(target=buscar, daemon=True).start()
 
     atualizar_jogos_remotos()
     search_var.trace_add("write", filtrar_jogos)

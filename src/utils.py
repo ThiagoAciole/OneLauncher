@@ -88,4 +88,5 @@ def load_icons():
         "logo":     load_icon('icone.png', (32, 32)),
         "check":    load_icon('icon_check.png', (40, 40)),
         "edit":     load_icon('icon_edit.png', (20, 20), make_white=True),
+        "trash":    load_icon('icon_trash.png', (32,32), make_white=True),
     }

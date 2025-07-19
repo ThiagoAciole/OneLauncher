@@ -154,6 +154,7 @@ def start_home():
     icon_logo     = icons["logo"]
     icon_check    = icons["check"]
     icon_edit     = icons["edit"]
+    icon_trash    = icons["trash"]
 
     # Layout
     main = ctk.CTkFrame(root, fg_color='#1e1e1e')
@@ -170,7 +171,8 @@ def start_home():
         "search": icon_search,
         "check": icon_check,
         "download": icon_download,
-        "refresh": icon_refresh
+        "refresh": icon_refresh,
+        "trash": icon_trash
     })
 
     # Header
